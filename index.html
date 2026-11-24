@@ -22,6 +22,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.5-.2-2.2H12v4h5.4a4.7 4.7 0 0 1-2 3v2.6h3.3c1.9-1.8 2.9-4.4 2.9-7.4z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.7-2.4L15.4 17c-.9.6-2.1 1-3.4 1-2.6 0-4.9-1.8-5.7-4.2H2.9v2.7A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.3 13.8a6 6 0 0 1 0-3.6V7.5H2.9a10 10 0 0 0 0 9l3.4-2.7z"/><path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 2.9 7.5l3.4 2.7C7.1 7.8 9.4 6 12 6z"/></svg>
           Continue with Google
         </button>
+        <p id="authMessage" class="login-copy" role="status" aria-live="polite"></p>
       </div>
     </section>
 
@@ -39,48 +40,22 @@
         </nav>
         <button id="logout" class="logout-button">Sign out</button>
       </aside>
-
       <main class="content">
-        <header class="topbar">
-          <div><p id="todayText" class="date-text"></p><h2 id="pageTitle">Overview</h2></div>
-          <div id="userBadge" class="user-badge"></div>
-        </header>
-
-        <div id="dashboardView" class="page-view">
-          <div class="summary-grid">
-            <article class="summary-card peach"><span>Today's Sales</span><strong id="todaySales">Rs. 0</strong><small id="todaySaleCount">0 transactions</small></article>
-            <article class="summary-card mint"><span>Today's Expenses</span><strong id="todayExpenses">Rs. 0</strong><small id="todayExpenseCount">0 entries</small></article>
-            <article class="summary-card lilac"><span>Net Balance</span><strong id="netBalance">Rs. 0</strong><small>Sales minus expenses</small></article>
-            <article class="summary-card yellow"><span>Outstanding Udhaar</span><strong id="udhaarBalance">Rs. 0</strong><small id="udhaarCount">0 customers</small></article>
-          </div>
-          <div class="dashboard-grid">
-            <article class="panel"><div class="panel-head"><div><p class="eyebrow">PERFORMANCE</p><h3>7-day sales</h3></div></div><div id="salesChart" class="bar-chart"></div></article>
-            <article class="panel"><div class="panel-head"><h3>Recent activity</h3></div><div id="recentActivity" class="activity-list"></div></article>
-          </div>
-        </div>
-
-        <div id="salesView" class="page-view hidden">
-          <div class="panel"><div class="panel-head"><h3>Add sale</h3></div><form id="saleForm" class="form-grid"><label>Amount (Rs.)<input name="amount" type="number" min="0" step="0.01" required></label><label>Customer<input name="customer" placeholder="Optional"></label><label>Note<input name="note" placeholder="Item / payment detail"></label><label>Date<input name="date" type="date" required></label><button class="primary-button" type="submit">Add sale</button></form></div>
-          <div class="panel table-panel"><div class="panel-head"><h3>Sales history</h3></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Customer</th><th>Note</th><th>Amount</th></tr></thead><tbody id="salesTable"></tbody></table></div></div>
-        </div>
-
-        <div id="expensesView" class="page-view hidden">
-          <div class="panel"><div class="panel-head"><h3>Add expense</h3></div><form id="expenseForm" class="form-grid"><label>Amount (Rs.)<input name="amount" type="number" min="0" step="0.01" required></label><label>Category<select name="category"><option>Stock</option><option>Rent</option><option>Utilities</option><option>Salary</option><option>Transport</option><option>Other</option></select></label><label>Note<input name="note" placeholder="Expense detail"></label><label>Date<input name="date" type="date" required></label><button class="primary-button" type="submit">Add expense</button></form></div>
-          <div class="panel table-panel"><div class="panel-head"><h3>Expense history</h3></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Note</th><th>Amount</th></tr></thead><tbody id="expensesTable"></tbody></table></div></div>
-        </div>
-
-        <div id="udhaarView" class="page-view hidden">
-          <div class="panel"><div class="panel-head"><h3>Add or update Udhaar</h3></div><form id="udhaarForm" class="form-grid"><label>Customer name<input name="customer" required></label><label>Amount (Rs.)<input name="amount" type="number" min="0" step="0.01" required></label><label>Phone<input name="phone" placeholder="Optional"></label><label>Note<input name="note" placeholder="Items / due date"></label><button class="primary-button" type="submit">Add Udhaar</button></form></div>
-          <div class="panel table-panel"><div class="panel-head"><h3>Customer balances</h3></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Phone</th><th>Note</th><th>Balance</th><th>Action</th></tr></thead><tbody id="udhaarTable"></tbody></table></div></div>
-        </div>
-
-        <div id="inventoryView" class="page-view hidden">
-          <div class="panel"><div class="panel-head"><h3>Add inventory item</h3></div><form id="inventoryForm" class="form-grid"><label>Item name<input name="name" required></label><label>Quantity<input name="quantity" type="number" min="0" required></label><label>Unit price (Rs.)<input name="price" type="number" min="0" step="0.01" required></label><label>Category<input name="category" placeholder="Optional"></label><button class="primary-button" type="submit">Add item</button></form></div>
-          <div class="panel table-panel"><div class="panel-head"><h3>Inventory</h3></div><div class="table-wrap"><table><thead><tr><th>Item</th><th>Category</th><th>Quantity</th><th>Unit price</th><th>Value</th></tr></thead><tbody id="inventoryTable"></tbody></table></div></div>
-        </div>
-
+        <header class="topbar"><div><p id="todayText" class="date-text"></p><h2 id="pageTitle">Overview</h2></div><div id="userBadge" class="user-badge"></div></header>
+        <div id="dashboardView" class="page-view"><div class="summary-grid">
+          <article class="summary-card peach"><span>Today's Sales</span><strong id="todaySales">Rs. 0</strong><small id="todaySaleCount">0 transactions</small></article>
+          <article class="summary-card mint"><span>Today's Expenses</span><strong id="todayExpenses">Rs. 0</strong><small id="todayExpenseCount">0 entries</small></article>
+          <article class="summary-card lilac"><span>Net Balance</span><strong id="netBalance">Rs. 0</strong><small>Sales minus expenses</small></article>
+          <article class="summary-card yellow"><span>Outstanding Udhaar</span><strong id="udhaarBalance">Rs. 0</strong><small id="udhaarCount">0 customers</small></article>
+        </div><div class="dashboard-grid">
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">PERFORMANCE</p><h3>7-day sales</h3></div></div><div id="salesChart" class="bar-chart"></div></article>
+          <article class="panel"><div class="panel-head"><h3>Recent activity</h3></div><div id="recentActivity" class="activity-list"></div></article>
+        </div></div>
+        <div id="salesView" class="page-view hidden"><div class="panel"><div class="panel-head"><h3>Add sale</h3></div><form id="saleForm" class="form-grid"><label>Amount (Rs.)<input name="amount" type="number" min="0" step="0.01" required></label><label>Customer<input name="customer" placeholder="Optional"></label><label>Note<input name="note" placeholder="Item / payment detail"></label><label>Date<input name="date" type="date" required></label><button class="primary-button" type="submit">Add sale</button></form></div><div class="panel table-panel"><div class="panel-head"><h3>Sales history</h3></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Customer</th><th>Note</th><th>Amount</th></tr></thead><tbody id="salesTable"></tbody></table></div></div></div>
+        <div id="expensesView" class="page-view hidden"><div class="panel"><div class="panel-head"><h3>Add expense</h3></div><form id="expenseForm" class="form-grid"><label>Amount (Rs.)<input name="amount" type="number" min="0" step="0.01" required></label><label>Category<select name="category"><option>Stock</option><option>Rent</option><option>Utilities</option><option>Salary</option><option>Transport</option><option>Other</option></select></label><label>Note<input name="note" placeholder="Expense detail"></label><label>Date<input name="date" type="date" required></label><button class="primary-button" type="submit">Add expense</button></form></div><div class="panel table-panel"><div class="panel-head"><h3>Expense history</h3></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Note</th><th>Amount</th></tr></thead><tbody id="expensesTable"></tbody></table></div></div></div>
+        <div id="udhaarView" class="page-view hidden"><div class="panel"><div class="panel-head"><h3>Add or update Udhaar</h3></div><form id="udhaarForm" class="form-grid"><label>Customer name<input name="customer" required></label><label>Amount (Rs.)<input name="amount" type="number" min="0" step="0.01" required></label><label>Phone<input name="phone" placeholder="Optional"></label><label>Note<input name="note" placeholder="Items / due date"></label><button class="primary-button" type="submit">Add Udhaar</button></form></div><div class="panel table-panel"><div class="panel-head"><h3>Customer balances</h3></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Phone</th><th>Note</th><th>Balance</th><th>Action</th></tr></thead><tbody id="udhaarTable"></tbody></table></div></div></div>
+        <div id="inventoryView" class="page-view hidden"><div class="panel"><div class="panel-head"><h3>Add inventory item</h3></div><form id="inventoryForm" class="form-grid"><label>Item name<input name="name" required></label><label>Quantity<input name="quantity" type="number" min="0" required></label><label>Unit price (Rs.)<input name="price" type="number" min="0" step="0.01" required></label><label>Category<input name="category" placeholder="Optional"></label><button class="primary-button" type="submit">Add item</button></form></div><div class="panel table-panel"><div class="panel-head"><h3>Inventory</h3></div><div class="table-wrap"><table><thead><tr><th>Item</th><th>Category</th><th>Quantity</th><th>Unit price</th><th>Value</th></tr></thead><tbody id="inventoryTable"></tbody></table></div></div></div>
         <div id="reportsView" class="page-view hidden"><div class="panel"><div class="panel-head"><h3>Reports</h3><button id="exportCsv" class="secondary-button">Export CSV</button></div><div class="form-grid"><label>From<input id="reportFrom" type="date"></label><label>To<input id="reportTo" type="date"></label><button id="generateReport" class="primary-button">Generate report</button></div><div id="reportOutput" class="report-output"></div></div></div>
-
         <div id="staffView" class="page-view hidden owner-only"><div class="panel"><div class="panel-head"><h3>Staff access</h3></div><form id="staffForm" class="form-grid"><label>Google email<input name="email" type="email" required></label><label>Role<select name="role"><option value="staff">Staff</option><option value="manager">Manager</option></select></label><button class="primary-button" type="submit">Add staff</button></form><div class="table-wrap"><table><thead><tr><th>Email</th><th>Role</th><th>Status</th></tr></thead><tbody id="staffTable"></tbody></table></div></div></div>
       </main>
     </section>
