@@ -78,14 +78,17 @@ async function refreshDashboard() {
       const d = new Date(); d.setDate(d.getDate() - i);
       const key = isoDate(d);
       const total = sales.filter(x => x.date === key).reduce((sum, x) => sum + Number(x.amount), 0);
-      const max = Math.max(1, ...Array.from({ length: 7 }, (_, n) => { const q = new Date(); q.setDate(q.getDate() - (6 - n)); return sales.filter(x => x.date === isoDate(q)).reduce((s, x) => s + Number(x.amount), 0); }));
+      const max = Math.max(1, ...Array.from({ length: 7 }, (_, n) => {
+        const q = new Date(); q.setDate(q.getDate() - (6 - n));
+        return sales.filter(x => x.date === isoDate(q)).reduce((s, x) => s + Number(x.amount), 0);
+      }));
       const col = document.createElement('div'); col.className = 'bar-column';
       col.innerHTML = `<div class="bar" title="${money(total)}" style="height:${Math.max(3, total / max * 180)}px"></div><span class="bar-label">${d.toLocaleDateString('en-NP', { weekday: 'short' })}</span>`;
       chart.appendChild(col);
     }
 
     const recent = [...sales.map(x => ({ ...x, kind: 'Sale' })), ...expenses.map(x => ({ ...x, kind: 'Expense' }))].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')).slice(0, 7);
-    $('#recentActivity').innerHTML = recent.length ? recent.map(x => `<div class="activity-item"><span>${x.kind} · ${x.note || x.category || x.customer || 'Entry'}</span><strong>${x.kind === 'Expense' ? '-' : '+'}${money(x.amount).replace('Rs. ', 'Rs. ')}</strong></div>`).join('') : '<p class="date-text">No recent activity</p>';
+    $('#recentActivity').innerHTML = recent.length ? recent.map(x => `<div class="activity-item"><span>${x.kind} · ${x.note || x.category || x.customer || 'Entry'}</span><strong>${x.kind === 'Expense' ? '-' : '+'}${money(x.amount)}</strong></div>`).join('') : '<p class="date-text">No recent activity</p>';
   } catch (error) { toast(error.message); }
 }
 
@@ -123,22 +126,46 @@ $('#googleLogin').addEventListener('click', async () => {
 });
 
 $('#logout').addEventListener('click', async () => { await supabase.auth.signOut(); });
-
 $$('.nav-item').forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
 
-$('#saleForm').addEventListener('submit', async event => { event.preventDefault(); const f = new FormData(event.target); await insertRow('sales', { amount: f.get('amount'), customer: f.get('customer'), note: f.get('note'), date: f.get('date') }); event.target.reset(); setTodayDefaults(); });
-$('#expenseForm').addEventListener('submit', async event => { event.preventEvent; event.preventDefault(); const f = new FormData(event.target); await insertRow('expenses', { amount: f.get('amount'), category: f.get('category'), note: f.get('note'), date: f.get('date') }); event.target.reset(); setTodayDefaults(); });
-$('#udhaarForm').addEventListener('submit', async event => { event.preventDefault(); const f = new FormData(event.target); await insertRow('udhaar', { customer: f.get('customer'), balance: f.get('amount'), phone: f.get('phone'), note: f.get('note') }); event.target.reset(); });
-$('#inventoryForm').addEventListener('submit', async event => { event.preventDefault(); const f = new FormData(event.target); await insertRow('inventory', { name: f.get('name'), quantity: f.get('quantity'), price: f.get('price'), category: f.get('category') }); event.target.reset(); });
+$('#saleForm').addEventListener('submit', async event => {
+  event.preventDefault(); const f = new FormData(event.target);
+  await insertRow('sales', { amount: f.get('amount'), customer: f.get('customer'), note: f.get('note'), date: f.get('date') });
+  event.target.reset(); setTodayDefaults();
+});
+
+$('#expenseForm').addEventListener('submit', async event => {
+  event.preventDefault(); const f = new FormData(event.target);
+  await insertRow('expenses', { amount: f.get('amount'), category: f.get('category'), note: f.get('note'), date: f.get('date') });
+  event.target.reset(); setTodayDefaults();
+});
+
+$('#udhaarForm').addEventListener('submit', async event => {
+  event.preventDefault(); const f = new FormData(event.target);
+  await insertRow('udhaar', { customer: f.get('customer'), balance: f.get('amount'), phone: f.get('phone'), note: f.get('note') });
+  event.target.reset();
+});
+
+$('#inventoryForm').addEventListener('submit', async event => {
+  event.preventDefault(); const f = new FormData(event.target);
+  await insertRow('inventory', { name: f.get('name'), quantity: f.get('quantity'), price: f.get('price'), category: f.get('category') });
+  event.target.reset();
+});
 
 $('#staffForm').addEventListener('submit', async event => {
   event.preventDefault(); const f = new FormData(event.target);
   if (!isOwner) return toast('Only the owner can add staff');
-  try { await insertRow('staff', { email: f.get('email').trim().toLowerCase(), role: f.get('role'), active: true }); event.target.reset(); await refreshStaff(); } catch (error) { toast(error.message); }
+  try {
+    await insertRow('staff', { email: f.get('email').trim().toLowerCase(), role: f.get('role'), active: true });
+    event.target.reset(); await refreshStaff();
+  } catch (error) { toast(error.message); }
 });
 
 async function refreshStaff() {
-  try { const staff = await getRows('staff'); $('#staffTable').innerHTML = staff.map(x => `<tr><td>${escapeHtml(x.email)}</td><td>${escapeHtml(x.role)}</td><td>${x.active ? 'Active' : 'Disabled'}</td></tr>`).join('') || '<tr><td colspan="3">No staff added</td></tr>'; } catch (error) { toast(error.message); }
+  try {
+    const staff = await getRows('staff');
+    $('#staffTable').innerHTML = staff.map(x => `<tr><td>${escapeHtml(x.email)}</td><td>${escapeHtml(x.role)}</td><td>${x.active ? 'Active' : 'Disabled'}</td></tr>`).join('') || '<tr><td colspan="3">No staff added</td></tr>';
+  } catch (error) { toast(error.message); }
 }
 
 async function getReportRows(from, to) {
@@ -159,7 +186,9 @@ $('#exportCsv').addEventListener('click', async () => {
   const [sales, expenses] = await Promise.all([getRows('sales'), getRows('expenses')]);
   const rows = [['Type','Date','Name/Category','Note','Amount'], ...sales.map(x => ['Sale',x.date,x.customer || '',x.note || '',x.amount]), ...expenses.map(x => ['Expense',x.date,x.category || '',x.note || '',x.amount])];
   const csv = rows.map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
-  const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); link.download = `abundant-bloom-${isoDate()}.csv`; link.click();
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  link.download = `abundant-bloom-${isoDate()}.csv`; link.click();
 });
 
 async function init() {
@@ -173,7 +202,7 @@ async function handleSession(session) {
     currentUser = null; $('#loginView').classList.remove('hidden'); $('#mainView').classList.add('hidden'); return;
   }
   currentUser = session.user;
-  const email = (currentUser.email || '').toLower.toLowerCase();
+  const email = (currentUser.email || '').toLowerCase().trim();
   isOwner = email === OWNER_EMAIL;
   let allowed = isOwner;
   if (!isOwner) {
