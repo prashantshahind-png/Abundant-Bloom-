@@ -51,22 +51,40 @@ async function refreshAll() { await Promise.all([refreshDashboard(), refreshTabl
 async function refreshDashboard() {
   try {
     const [sales, expenses, udhaar] = await Promise.all([getRows('sales'), getRows('expenses'), getRows('udhaar')]);
-    const today = isoDate();
-    const todaySales = sales.filter(x => x.date === today);
-    const todayExpenses = expenses.filter(x => x.date === today);
+    const today = new Date();
+    const todayKey = isoDate(today);
+    const monday = new Date(today);
+    const daysSinceMonday = (today.getDay() + 6) % 7;
+    monday.setDate(today.getDate() - daysSinceMonday);
+    monday.setHours(0, 0, 0, 0);
+    const weekStart = isoDate(monday);
+    const monthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+    const todaySales = sales.filter(x => x.date === todayKey);
+    const todayExpenses = expenses.filter(x => x.date === todayKey);
+    const weekSales = sales.filter(x => x.date >= weekStart && x.date <= todayKey);
+    const monthSales = sales.filter(x => x.date >= monthStart && x.date <= todayKey);
     const saleTotal = todaySales.reduce((sum, x) => sum + Number(x.amount), 0);
     const expenseTotal = todayExpenses.reduce((sum, x) => sum + Number(x.amount), 0);
+    const weekTotal = weekSales.reduce((sum, x) => sum + Number(x.amount), 0);
+    const monthTotal = monthSales.reduce((sum, x) => sum + Number(x.amount), 0);
     const outstanding = udhaar.reduce((sum, x) => sum + Number(x.balance || 0), 0);
     $('#todaySales').textContent = money(saleTotal);
+    $('#weekSales').textContent = money(weekTotal);
+    $('#monthSales').textContent = money(monthTotal);
     $('#todayExpenses').textContent = money(expenseTotal);
     $('#netBalance').textContent = money(saleTotal - expenseTotal);
     $('#udhaarBalance').textContent = money(outstanding);
     $('#todaySaleCount').textContent = `${todaySales.length} transactions`;
     $('#todayExpenseCount').textContent = `${todayExpenses.length} entries`;
     $('#udhaarCount').textContent = `${udhaar.filter(x => Number(x.balance) > 0).length} customers`;
+
     const chart = $('#salesChart'); chart.innerHTML = '';
     const sevenDays = [];
-    for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const key = isoDate(d); sevenDays.push({ d, key, total: sales.filter(x => x.date === key).reduce((sum, x) => sum + Number(x.amount), 0) }); }
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today); d.setDate(today.getDate() - i);
+      const key = isoDate(d);
+      sevenDays.push({ d, total: sales.filter(x => x.date === key).reduce((sum, x) => sum + Number(x.amount), 0) });
+    }
     const max = Math.max(1, ...sevenDays.map(day => day.total));
     for (const { d, total } of sevenDays) {
       const col = document.createElement('div'); col.className = 'bar-column';
@@ -79,11 +97,10 @@ async function refreshDashboard() {
 }
 async function refreshTables() {
   try {
-    const [sales, expenses, udhaar, inventory] = await Promise.all([getRows('sales'), getRows('expenses'), getRows('udhaar'), getRows('inventory')]);
+    const [sales, expenses, udhaar] = await Promise.all([getRows('sales'), getRows('expenses'), getRows('udhaar')]);
     $('#salesTable').innerHTML = sales.map(x => `<tr><td>${x.date}</td><td>${escapeHtml(x.customer || '-')}</td><td>${escapeHtml(x.note || '-')}</td><td>${money(x.amount)}</td></tr>`).join('') || '<tr><td colspan="4">No sales yet</td></tr>';
     $('#expensesTable').innerHTML = expenses.map(x => `<tr><td>${x.date}</td><td>${escapeHtml(x.category)}</td><td>${escapeHtml(x.note || '-')}</td><td>${money(x.amount)}</td></tr>`).join('') || '<tr><td colspan="4">No expenses yet</td></tr>';
     $('#udhaarTable').innerHTML = udhaar.map(x => `<tr><td>${escapeHtml(x.customer)}</td><td>${escapeHtml(x.phone || '-')}</td><td>${escapeHtml(x.note || '-')}</td><td>${money(x.balance)}</td><td><button class="secondary-button settle-button" data-id="${x.id}">Settled</button></td></tr>`).join('') || '<tr><td colspan="5">No Udhaar records</td></tr>';
-    $('#inventoryTable').innerHTML = inventory.map(x => `<tr><td>${escapeHtml(x.name)}</td><td>${escapeHtml(x.category || '-')}</td><td>${x.quantity}</td><td>${money(x.price)}</td><td>${money(Number(x.quantity) * Number(x.price))}</td></tr>`).join('') || '<tr><td colspan="5">No inventory items</td></tr>';
     $$('.settle-button').forEach(button => button.addEventListener('click', () => settleUdhaar(button.dataset.id)));
   } catch (error) { toast(error.message); }
 }
@@ -118,7 +135,6 @@ $$('.nav-item').forEach(button => button.addEventListener('click', () => showVie
 $('#saleForm').addEventListener('submit', async event => { event.preventDefault(); const f = new FormData(event.target); try { await insertRow('sales', { amount: f.get('amount'), customer: f.get('customer'), note: f.get('note'), date: f.get('date') }); event.target.reset(); setTodayDefaults(); } catch (error) { toast(error.message); } });
 $('#expenseForm').addEventListener('submit', async event => { event.preventDefault(); const f = new FormData(event.target); try { await insertRow('expenses', { amount: f.get('amount'), category: f.get('category'), note: f.get('note'), date: f.get('date') }); event.target.reset(); setTodayDefaults(); } catch (error) { toast(error.message); } });
 $('#udhaarForm').addEventListener('submit', async event => { event.preventDefault(); const f = new FormData(event.target); try { await insertRow('udhaar', { customer: f.get('customer'), balance: f.get('amount'), phone: f.get('phone'), note: f.get('note') }); event.target.reset(); } catch (error) { toast(error.message); } });
-$('#inventoryForm').addEventListener('submit', async event => { event.preventDefault(); const f = new FormData(event.target); try { await insertRow('inventory', { name: f.get('name'), quantity: f.get('quantity'), price: f.get('price'), category: f.get('category') }); event.target.reset(); } catch (error) { toast(error.message); } });
 $('#staffForm').addEventListener('submit', async event => {
   event.preventDefault(); const f = new FormData(event.target);
   if (!isOwner) return toast('Only the owner can add staff');
@@ -136,12 +152,19 @@ async function getReportRows(from, to) {
 $('#generateReport').addEventListener('click', async () => {
   const from = $('#reportFrom').value, to = $('#reportTo').value;
   if (!from || !to) return toast('Choose both dates');
-  try { const { sales, expenses } = await getReportRows(from, to); const salesTotal = sales.reduce((s,x) => s + Number(x.amount), 0), expenseTotal = expenses.reduce((s,x) => s + Number(x.amount), 0); $('#reportOutput').innerHTML = `<div class="report-stat"><span>Sales</span><strong>${money(salesTotal)}</strong></div><div class="report-stat"><span>Expenses</span><strong>${money(expenseTotal)}</strong></div><div class="report-stat"><span>Net balance</span><strong>${money(salesTotal - expenseTotal)}</strong></div>`; }
-  catch (error) { toast(error.message); }
+  try {
+    const { sales, expenses } = await getReportRows(from, to);
+    const salesTotal = sales.reduce((s,x) => s + Number(x.amount), 0), expenseTotal = expenses.reduce((s,x) => s + Number(x.amount), 0);
+    $('#reportOutput').innerHTML = `<div class="report-stat"><span>Sales</span><strong>${money(salesTotal)}</strong></div><div class="report-stat"><span>Expenses</span><strong>${money(expenseTotal)}</strong></div><div class="report-stat"><span>Net balance</span><strong>${money(salesTotal - expenseTotal)}</strong></div>`;
+  } catch (error) { toast(error.message); }
 });
 $('#exportCsv').addEventListener('click', async () => {
-  try { const [sales, expenses] = await Promise.all([getRows('sales'), getRows('expenses')]); const rows = [['Type','Date','Name/Category','Note','Amount'], ...sales.map(x => ['Sale',x.date,x.customer || '',x.note || '',x.amount]), ...expenses.map(x => ['Expense',x.date,x.category || '',x.note || '',x.amount])]; const csv = rows.map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'); const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); link.download = `abundant-bloom-${isoDate()}.csv`; link.click(); }
-  catch (error) { toast(error.message); }
+  try {
+    const [sales, expenses] = await Promise.all([getRows('sales'), getRows('expenses')]);
+    const rows = [['Type','Date','Name/Category','Note','Amount'], ...sales.map(x => ['Sale',x.date,x.customer || '',x.note || '',x.amount]), ...expenses.map(x => ['Expense',x.date,x.category || '',x.note || '',x.amount])];
+    const csv = rows.map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+    const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); link.download = `abundant-bloom-${isoDate()}.csv`; link.click();
+  } catch (error) { toast(error.message); }
 });
 async function handleSession(session) {
   if (!session) { currentUser = null; $('#loginView').classList.remove('hidden'); $('#mainView').classList.add('hidden'); $('#googleLogin').disabled = false; $('#googleLogin').textContent = 'Continue with Google'; loginPending = false; return; }
