@@ -103,22 +103,14 @@ function showView(name) {
 $('#googleLogin').addEventListener('click', async () => {
   if (loginPending) return;
   loginPending = true;
-  const button = $('#googleLogin');
-  button.disabled = true;
-  button.textContent = 'Connecting to Google…';
+  const button = $('#googleLogin'); button.disabled = true; button.textContent = 'Connecting to Google…';
   setAuthMessage('Opening Google sign-in…');
   try {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}${window.location.pathname}` }
-    });
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}${window.location.pathname}` } });
     if (error) throw error;
-    // Supabase redirects the browser to Google when OAuth starts successfully.
   } catch (error) {
     setAuthMessage(`Sign-in could not start: ${error.message}`);
-    button.disabled = false;
-    button.textContent = 'Continue with Google';
-    loginPending = false;
+    button.disabled = false; button.textContent = 'Continue with Google'; loginPending = false;
   }
 });
 $('#logout').addEventListener('click', async () => { await supabase.auth.signOut(); });
@@ -144,61 +136,34 @@ async function getReportRows(from, to) {
 $('#generateReport').addEventListener('click', async () => {
   const from = $('#reportFrom').value, to = $('#reportTo').value;
   if (!from || !to) return toast('Choose both dates');
-  try {
-    const { sales, expenses } = await getReportRows(from, to);
-    const salesTotal = sales.reduce((s,x) => s + Number(x.amount), 0), expenseTotal = expenses.reduce((s,x) => s + Number(x.amount), 0);
-    $('#reportOutput').innerHTML = `<div class="report-stat"><span>Sales</span><strong>${money(salesTotal)}</strong></div><div class="report-stat"><span>Expenses</span><strong>${money(expenseTotal)}</strong></div><div class="report-stat"><span>Net balance</span><strong>${money(salesTotal - expenseTotal)}</strong></div>`;
-  } catch (error) { toast(error.message); }
+  try { const { sales, expenses } = await getReportRows(from, to); const salesTotal = sales.reduce((s,x) => s + Number(x.amount), 0), expenseTotal = expenses.reduce((s,x) => s + Number(x.amount), 0); $('#reportOutput').innerHTML = `<div class="report-stat"><span>Sales</span><strong>${money(salesTotal)}</strong></div><div class="report-stat"><span>Expenses</span><strong>${money(expenseTotal)}</strong></div><div class="report-stat"><span>Net balance</span><strong>${money(salesTotal - expenseTotal)}</strong></div>`; }
+  catch (error) { toast(error.message); }
 });
 $('#exportCsv').addEventListener('click', async () => {
-  try {
-    const [sales, expenses] = await Promise.all([getRows('sales'), getRows('expenses')]);
-    const rows = [['Type','Date','Name/Category','Note','Amount'], ...sales.map(x => ['Sale',x.date,x.customer || '',x.note || '',x.amount]), ...expenses.map(x => ['Expense',x.date,x.category || '',x.note || '',x.amount])];
-    const csv = rows.map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
-    const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); link.download = `abundant-bloom-${isoDate()}.csv`; link.click();
-  } catch (error) { toast(error.message); }
+  try { const [sales, expenses] = await Promise.all([getRows('sales'), getRows('expenses')]); const rows = [['Type','Date','Name/Category','Note','Amount'], ...sales.map(x => ['Sale',x.date,x.customer || '',x.note || '',x.amount]), ...expenses.map(x => ['Expense',x.date,x.category || '',x.note || '',x.amount])]; const csv = rows.map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'); const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); link.download = `abundant-bloom-${isoDate()}.csv`; link.click(); }
+  catch (error) { toast(error.message); }
 });
-
 async function handleSession(session) {
-  if (!session) {
-    currentUser = null;
-    $('#loginView').classList.remove('hidden'); $('#mainView').classList.add('hidden');
-    $('#googleLogin').disabled = false; $('#googleLogin').textContent = 'Continue with Google'; loginPending = false;
-    return;
-  }
+  if (!session) { currentUser = null; $('#loginView').classList.remove('hidden'); $('#mainView').classList.add('hidden'); $('#googleLogin').disabled = false; $('#googleLogin').textContent = 'Continue with Google'; loginPending = false; return; }
   currentUser = session.user;
-  const email = (currentUser.email || '').toLowerCase().trim();
-  isOwner = email === OWNER_EMAIL;
+  const email = (currentUser.email || '').toLowerCase().trim(); isOwner = email === OWNER_EMAIL;
   let allowed = isOwner;
   if (!isOwner) {
     const { data, error } = await supabase.from('staff').select('role,active').eq('email', email).maybeSingle();
     if (error) throw new Error(`Signed in as ${email}, but staff access check failed: ${error.message}`);
     allowed = !!data?.active;
   }
-  if (!allowed) {
-    setAuthMessage(`Google sign-in succeeded as ${email}, but this account is not authorized. Sign in with ${OWNER_EMAIL}.`);
-    await supabase.auth.signOut();
-    return;
-  }
-  setAuthMessage('');
-  $('#loginView').classList.add('hidden'); $('#mainView').classList.remove('hidden');
+  if (!allowed) { setAuthMessage(`Google sign-in succeeded as ${email}, but this account is not authorized. Sign in with ${OWNER_EMAIL}.`); await supabase.auth.signOut(); return; }
+  setAuthMessage(''); $('#loginView').classList.add('hidden'); $('#mainView').classList.remove('hidden');
   $('#userBadge').innerHTML = `${currentUser.user_metadata?.avatar_url ? `<img class="avatar" src="${currentUser.user_metadata.avatar_url}" alt="">` : ''}<div><strong>${escapeHtml(currentUser.user_metadata?.full_name || email)}</strong><br><small>${isOwner ? 'Owner' : 'Staff'}</small></div>`;
   $$('.owner-only').forEach(el => el.classList.toggle('hidden', !isOwner));
-  await refreshAll(); await refreshStaff();
+  await refreshAll();
+  if (isOwner) await refreshStaff();
 }
-
 async function init() {
   $('#todayText').textContent = adDate(); setTodayDefaults();
-  try {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    await handleSession(session);
-  } catch (error) {
-    setAuthMessage(`Unable to restore sign-in: ${error.message}`);
-  }
-  // Avoid awaiting database work inside Supabase's auth callback; doing so can hold its auth lock.
-  supabase.auth.onAuthStateChange((_event, session) => {
-    setTimeout(() => { handleSession(session).catch(error => setAuthMessage(`Sign-in succeeded, but the app could not load: ${error.message}`)); }, 0);
-  });
+  try { const { data: { session }, error } = await supabase.auth.getSession(); if (error) throw error; await handleSession(session); }
+  catch (error) { setAuthMessage(`Unable to restore sign-in: ${error.message}`); }
+  supabase.auth.onAuthStateChange((_event, session) => { setTimeout(() => { handleSession(session).catch(error => setAuthMessage(`Sign-in succeeded, but the app could not load: ${error.message}`)); }, 0); });
 }
 init();

@@ -26,6 +26,11 @@ alter table public.udhaar enable row level security;
 alter table public.inventory enable row level security;
 alter table public.staff enable row level security;
 
+-- Table privileges are required in addition to RLS policies.
+grant select, insert on public.sales, public.expenses, public.inventory to authenticated;
+grant select, insert, update on public.udhaar to authenticated;
+grant select, insert on public.staff to authenticated;
+
 do $$ begin
   create policy "authenticated read sales" on public.sales for select to authenticated using (true);
 exception when duplicate_object then null; end $$;
@@ -53,9 +58,18 @@ exception when duplicate_object then null; end $$;
 do $$ begin
   create policy "authenticated insert inventory" on public.inventory for insert to authenticated with check (true);
 exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "authenticated read staff" on public.staff for select to authenticated using (true);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "authenticated insert staff" on public.staff for insert to authenticated with check (true);
-exception when duplicate_object then null; end $$;
+
+-- Staff can read their own access row; the owner can manage/read the staff list.
+drop policy if exists "authenticated read staff" on public.staff;
+drop policy if exists "authenticated insert staff" on public.staff;
+drop policy if exists "staff read own or owner" on public.staff;
+drop policy if exists "owner insert staff" on public.staff;
+create policy "staff read own or owner" on public.staff
+  for select to authenticated
+  using (
+    lower(email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+    or lower(coalesce(auth.jwt() ->> 'email', '')) = 'thephulshop7@gmail.com'
+  );
+create policy "owner insert staff" on public.staff
+  for insert to authenticated
+  with check (lower(coalesce(auth.jwt() ->> 'email', '')) = 'thephulshop7@gmail.com');
